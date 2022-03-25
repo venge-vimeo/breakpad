@@ -62,6 +62,7 @@ struct Options {
   bool output_stack_contents;
   bool output_requesting_thread_only;
   bool brief;
+  bool output_crashpad_info;
 
   string minidump_file;
   std::vector<string> symbol_paths;
@@ -113,6 +114,14 @@ bool PrintMinidumpProcess(const Options& options) {
     return false;
   }
 
+  if (options.output_crashpad_info) {
+      google_breakpad::MinidumpCrashpadInfo *crashpad_info = dump.GetCrashpadInfo();
+      if (crashpad_info) {
+        // Crashpad info is optional, so don't treat absence as an error.
+        crashpad_info->Print();
+      }
+  }
+
   if (options.machine_readable) {
     PrintProcessStateMachineReadable(process_state);
   } else if (options.brief) {
@@ -139,6 +148,7 @@ static void Usage(int argc, const char *argv[], bool error) {
           "  -s         Output stack contents\n"
           "  -c         Output thread that causes crash or dump only\n"
           "  -b         Brief of the thread that causes crash or dump\n",
+          "  -C         Output crashpad info\n",
           google_breakpad::BaseName(argv[0]).c_str());
 }
 
@@ -149,8 +159,9 @@ static void SetupOptions(int argc, const char *argv[], Options* options) {
   options->output_stack_contents = false;
   options->output_requesting_thread_only = false;
   options->brief = false;
+  options->output_crashpad_info = false;
 
-  while ((ch = getopt(argc, (char* const*)argv, "bchms")) != -1) {
+  while ((ch = getopt(argc, (char * const*)argv, "bchmsC")) != -1) {
     switch (ch) {
       case 'h':
         Usage(argc, argv, false);
@@ -169,7 +180,9 @@ static void SetupOptions(int argc, const char *argv[], Options* options) {
       case 's':
         options->output_stack_contents = true;
         break;
-
+      case 'C':
+        options->output_crashpad_info = true;
+        break;
       case '?':
         Usage(argc, argv, true);
         exit(1);
