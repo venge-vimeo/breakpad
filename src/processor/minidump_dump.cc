@@ -47,25 +47,32 @@
 namespace {
 
 using google_breakpad::Minidump;
-using google_breakpad::MinidumpThreadList;
 using google_breakpad::MinidumpThreadNameList;
-using google_breakpad::MinidumpModuleList;
-using google_breakpad::MinidumpMemoryInfoList;
-using google_breakpad::MinidumpMemoryList;
-using google_breakpad::MinidumpException;
 using google_breakpad::MinidumpAssertion;
-using google_breakpad::MinidumpSystemInfo;
-using google_breakpad::MinidumpMiscInfo;
 using google_breakpad::MinidumpBreakpadInfo;
 using google_breakpad::MinidumpCrashpadInfo;
+using google_breakpad::MinidumpException;
+using google_breakpad::MinidumpMemoryInfoList;
+using google_breakpad::MinidumpMemoryList;
+using google_breakpad::MinidumpMiscInfo;
+using google_breakpad::MinidumpModule;
+using google_breakpad::MinidumpModuleList;
+using google_breakpad::MinidumpSystemInfo;
+using google_breakpad::MinidumpThreadList;
 
 struct Options {
   Options()
-      : minidumpPath(), hexdump(false), hexdump_width(16) {}
+      : minidumpPath(),
+        hexdump(false),
+        hexdump_width(16),
+        modules_debug_info(false),
+        platform_info(false) {}
 
   string minidumpPath;
   bool hexdump;
   unsigned int hexdump_width;
+  bool modules_debug_info;
+  bool platform_info;
 };
 
 static void DumpRawStream(Minidump *minidump,
@@ -114,6 +121,50 @@ static bool PrintMinidumpDump(const Options& options) {
     BPLOG(ERROR) << "minidump.Read() failed";
     return false;
   }
+
+  if (options.modules_debug_info) {
+    const MinidumpModuleList* modules = minidump.GetModuleList();
+
+    if (modules != nullptr) {
+      const unsigned int modules_n = modules->module_count();
+
+      for (unsigned int i = 0; i < modules_n; ++i) {
+        const MinidumpModule* module = modules->GetModuleAtIndex(i);
+
+        if (module != nullptr) {
+          printf("%s;%s;%s;%s\n", module->code_file().c_str(),
+                 module->code_identifier().c_str(),
+                 module->debug_file().c_str(),
+                 module->debug_identifier().c_str());
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  if (options.platform_info) {
+    const MinidumpSystemInfo* sys_info = minidump.GetSystemInfo();
+
+    if (sys_info != nullptr) {
+      const MDRawSystemInfo* sys_info_raw = sys_info->system_info();
+      char sys_ver[32] = {0};
+
+      if (sys_info_raw != nullptr) {
+        sprintf(sys_ver, "%u.%u.%u", sys_info_raw->major_version,
+                sys_info_raw->minor_version, sys_info_raw->build_number);
+      }
+
+      printf("%s;%s;%s\n", sys_info->GetOS().c_str(), sys_ver,
+             sys_info->GetCPU().c_str());
+      return true;
+    }
+
+    return false;
+  }
+
   minidump.Print();
 
   int errors = 0;
@@ -242,6 +293,8 @@ Usage(int argc, char *argv[], bool error) {
           "Options:\n"
           "  <minidump> should be a minidump.\n"
           "  -x:\t Display memory in a hexdump like format\n"
+          "  -M:\t Display modules and debug information\n"
+          "  -P:\t Display platform information\n"
           "  -h:\t Usage\n",
           google_breakpad::BaseName(argv[0]).c_str());
 }
@@ -251,10 +304,16 @@ static void
 SetupOptions(int argc, char *argv[], Options *options) {
   int ch;
 
-  while ((ch = getopt(argc, (char * const*)argv, "xh")) != -1) {
+  while ((ch = getopt(argc, (char* const*)argv, "xMPh")) != -1) {
     switch (ch) {
       case 'x':
         options->hexdump = true;
+        break;
+      case 'M':
+        options->modules_debug_info = true;
+        break;
+      case 'P':
+        options->platform_info = true;
         break;
       case 'h':
         Usage(argc, argv, false);

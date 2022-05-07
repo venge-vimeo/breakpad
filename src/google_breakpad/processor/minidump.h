@@ -800,8 +800,8 @@ class MinidumpSystemInfo : public MinidumpStream {
   // GetOS() are "mac", "windows", and "linux".  Defined values for GetCPU
   // are "x86" and "ppc".  These methods return an empty string when their
   // values are unknown.
-  string GetOS();
-  string GetCPU();
+  string GetOS() const;
+  string GetCPU() const;
 
   // I don't know what CSD stands for, but this field is documented as
   // returning a textual representation of the OS service pack.  On other

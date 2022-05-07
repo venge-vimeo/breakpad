@@ -3858,8 +3858,7 @@ bool MinidumpSystemInfo::Read(uint32_t expected_size) {
   return true;
 }
 
-
-string MinidumpSystemInfo::GetOS() {
+string MinidumpSystemInfo::GetOS() const {
   string os;
 
   if (!valid_) {
@@ -3914,8 +3913,7 @@ string MinidumpSystemInfo::GetOS() {
   return os;
 }
 
-
-string MinidumpSystemInfo::GetCPU() {
+string MinidumpSystemInfo::GetCPU() const {
   if (!valid_) {
     BPLOG(ERROR) << "Invalid MinidumpSystemInfo for GetCPU";
     return "";
@@ -3970,7 +3968,6 @@ string MinidumpSystemInfo::GetCPU() {
 
   return cpu;
 }
-
 
 const string* MinidumpSystemInfo::GetCSDVersion() {
   if (!valid_) {
