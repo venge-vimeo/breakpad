@@ -42,6 +42,7 @@
 #include <string.h>
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "common/stdio_wrapper.h"
@@ -311,6 +312,48 @@ static void PrintFrameHeader(const StackFrame* frame, int frame_index) {
 // order.  If no source line, function, or module information is available,
 // an absolute code offset is printed.
 //
+
+struct ModuleInfo {
+  std::string code_file;
+  std::string code_identifier;
+  std::string debug_file;
+  std::string debug_identifier;
+};
+
+static void GetStackModules(const CallStack* stack,
+                            std::vector<ModuleInfo>* modules) {
+  int frame_count = stack->frames()->size();
+  for (int frame_index = 0; frame_index < frame_count; ++frame_index) {
+    const StackFrame* frame = stack->frames()->at(frame_index);
+    if (frame->module) {
+      ModuleInfo info;
+
+      info.code_file = frame->module->code_file();
+      info.code_identifier = frame->module->code_identifier();
+      info.debug_file = frame->module->debug_file();
+      info.debug_identifier = frame->module->debug_identifier();
+
+      modules->push_back(std::move(info));
+    }
+  }
+}
+
+static void PrintPrettyStack(const CallStack* stack) {
+  int frame_count = stack->frames()->size();
+  for (int frame_index = 0; frame_index < frame_count; ++frame_index) {
+    const StackFrame* frame = stack->frames()->at(frame_index);
+    if (frame->module) {
+      printf("%s", PathnameStripper::File(frame->module->code_file()).c_str());
+      if (!frame->function_name.empty()) {
+        printf("!%s", frame->function_name.c_str());
+      }
+    } else {
+      printf("---");
+    }
+    printf("\n");
+  }
+}
+
 // If |cpu| is a recognized CPU name, relevant register state for each stack
 // frame printed is also output, if available.
 static void PrintStack(const CallStack* stack,
@@ -1121,8 +1164,63 @@ static void PrintModulesMachineReadable(const CodeModules* modules) {
 void PrintProcessState(const ProcessState& process_state,
                        bool output_stack_contents,
                        bool output_requesting_thread_only,
+                       bool modules_only,
+                       bool pretty_frame,
                        SourceLineResolverInterface* resolver) {
   // Print OS and CPU information.
+  if (modules_only) {
+    std::vector<ModuleInfo> stack_modules;
+    // If the thread that requested the dump is known, print it first.
+    int requesting_thread = process_state.requesting_thread();
+    if (requesting_thread != -1) {
+      GetStackModules(process_state.threads()->at(requesting_thread),
+                      &stack_modules);
+    }
+
+    if (!output_requesting_thread_only) {
+      // Print all of the threads in the dump.
+      int thread_count = process_state.threads()->size();
+      for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
+        if (thread_index != requesting_thread) {
+          GetStackModules(process_state.threads()->at(thread_index),
+                          &stack_modules);
+        }
+      }
+    }
+
+    std::unordered_set<std::string> id_to_module;
+    std::string s;
+    for (const ModuleInfo& module_info : stack_modules) {
+      s.clear();
+      s = module_info.code_file;
+      s += module_info.code_identifier;
+      auto i = id_to_module.insert(s);
+      if (i.second) {
+        printf("%s;%s;%s;%s\n", module_info.code_file.c_str(),
+               module_info.code_identifier.c_str(),
+               module_info.debug_file.c_str(),
+               module_info.debug_identifier.c_str());
+      }
+    }
+
+    return;
+  } else if (pretty_frame) {
+    int requesting_thread = process_state.requesting_thread();
+    if (requesting_thread != -1) {
+      PrintPrettyStack(process_state.threads()->at(requesting_thread));
+    }
+
+    if (!output_requesting_thread_only) {
+      // Print all of the threads in the dump.
+      int thread_count = process_state.threads()->size();
+      for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
+        if (thread_index != requesting_thread) {
+          PrintPrettyStack(process_state.threads()->at(thread_index));
+        }
+      }
+    }
+    return;
+  }
   string cpu = process_state.system_info()->cpu;
   string cpu_info = process_state.system_info()->cpu_info;
   printf("Operating system: %s\n", process_state.system_info()->os.c_str());

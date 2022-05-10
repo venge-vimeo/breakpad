@@ -63,6 +63,8 @@ struct Options {
   bool output_requesting_thread_only;
   bool brief;
   bool output_crashpad_info;
+  bool modules_only;
+  bool pretty_frame;
 
   string minidump_file;
   std::vector<string> symbol_paths;
@@ -128,7 +130,8 @@ bool PrintMinidumpProcess(const Options& options) {
     PrintRequestingThreadBrief(process_state);
   } else {
     PrintProcessState(process_state, options.output_stack_contents,
-                      options.output_requesting_thread_only, &resolver);
+                      options.output_requesting_thread_only,
+                      options.modules_only, options.pretty_frame, &resolver);
   }
 
   return true;
@@ -149,6 +152,8 @@ static void Usage(int argc, const char *argv[], bool error) {
           "  -c         Output thread that causes crash or dump only\n"
           "  -b         Brief of the thread that causes crash or dump\n",
           "  -C         Output crashpad info\n",
+          "  -M         Output modules only\n"
+          "  -P         Pretty stack frames\n",
           google_breakpad::BaseName(argv[0]).c_str());
 }
 
@@ -160,8 +165,10 @@ static void SetupOptions(int argc, const char *argv[], Options* options) {
   options->output_requesting_thread_only = false;
   options->brief = false;
   options->output_crashpad_info = false;
+  options->modules_only = false;
+  options->pretty_frame = false;
 
-  while ((ch = getopt(argc, (char * const*)argv, "bchmsC")) != -1) {
+  while ((ch = getopt(argc, (char* const*)argv, "bchmsCMP")) != -1) {
     switch (ch) {
       case 'h':
         Usage(argc, argv, false);
@@ -182,6 +189,12 @@ static void SetupOptions(int argc, const char *argv[], Options* options) {
         break;
       case 'C':
         options->output_crashpad_info = true;
+        break;
+      case 'M':
+        options->modules_only = true;
+        break;
+      case 'P':
+        options->pretty_frame = true;
         break;
       case '?':
         Usage(argc, argv, true);
