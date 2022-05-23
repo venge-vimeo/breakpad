@@ -1159,6 +1159,14 @@ static void PrintModulesMachineReadable(const CodeModules* modules) {
   }
 }
 
+int GetRequestingThread(const ProcessState& process_state) {
+  if (process_state.crash_reason() == "Simulated Exception") {
+    return 0;
+  }
+
+  return process_state.requesting_thread();
+}
+
 }  // namespace
 
 void PrintProcessState(const ProcessState& process_state,
@@ -1171,7 +1179,7 @@ void PrintProcessState(const ProcessState& process_state,
   if (modules_only) {
     std::vector<ModuleInfo> stack_modules;
     // If the thread that requested the dump is known, print it first.
-    int requesting_thread = process_state.requesting_thread();
+    int requesting_thread = GetRequestingThread(process_state);
     if (requesting_thread != -1) {
       GetStackModules(process_state.threads()->at(requesting_thread),
                       &stack_modules);
@@ -1205,7 +1213,7 @@ void PrintProcessState(const ProcessState& process_state,
 
     return;
   } else if (pretty_frame) {
-    int requesting_thread = process_state.requesting_thread();
+    int requesting_thread = GetRequestingThread(process_state);
     if (requesting_thread != -1) {
       PrintPrettyStack(process_state.threads()->at(requesting_thread));
     }
@@ -1276,7 +1284,7 @@ void PrintProcessState(const ProcessState& process_state,
   }
 
   // If the thread that requested the dump is known, print it first.
-  int requesting_thread = process_state.requesting_thread();
+  int requesting_thread = GetRequestingThread(process_state);
   if (requesting_thread != -1) {
     printf("\n");
     printf("Thread %d (%s)\n",
