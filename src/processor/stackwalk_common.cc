@@ -1287,8 +1287,9 @@ void PrintProcessState(const ProcessState& process_state,
   int requesting_thread = GetRequestingThread(process_state);
   if (requesting_thread != -1) {
     printf("\n");
-    printf("Thread %d (%s)\n",
+    printf("Thread %d (%u) (%s)\n",
           requesting_thread,
+          process_state.threads()->at(requesting_thread)->tid(),
           process_state.crashed() ? "crashed" :
                                     "requested dump, did not crash");
     PrintStack(process_state.threads()->at(requesting_thread), cpu,
@@ -1304,7 +1305,7 @@ void PrintProcessState(const ProcessState& process_state,
       if (thread_index != requesting_thread) {
         // Don't print the crash thread again, it was already printed.
         printf("\n");
-        printf("Thread %d\n", thread_index);
+        printf("Thread %d (%u)\n", thread_index, process_state.threads()->at(thread_index)->tid());
         PrintStack(process_state.threads()->at(thread_index), cpu,
                   output_stack_contents,
                   process_state.thread_memory_regions()->at(thread_index),
