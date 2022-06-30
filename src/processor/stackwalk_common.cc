@@ -1282,16 +1282,29 @@ void PrintProcessState(const ProcessState& process_state,
   } else {
     printf("Process uptime: not available\n");
   }
-
+  const vector<string>* thread_names = process_state.thread_names();
+  std::string thread_name;
   // If the thread that requested the dump is known, print it first.
   int requesting_thread = GetRequestingThread(process_state);
   if (requesting_thread != -1) {
     printf("\n");
-    printf("Thread %d (%u) (%s)\n",
-          requesting_thread,
+
+    if (thread_names != nullptr) {
+      thread_name = thread_names->at(requesting_thread);
+    }
+
+    if (!thread_name.empty()) {
+      printf(
+          "Thread %d (%s) [%u] \"%s\"\n", requesting_thread,
+          process_state.crashed() ? "crashed" : "requested dump, did not crash",
           process_state.threads()->at(requesting_thread)->tid(),
-          process_state.crashed() ? "crashed" :
-                                    "requested dump, did not crash");
+          thread_name.c_str());
+    } else {
+      printf(
+          "Thread %d (%s) [%u]\n", requesting_thread,
+          process_state.crashed() ? "crashed" : "requested dump, did not crash",
+          process_state.threads()->at(requesting_thread)->tid());
+    }
     PrintStack(process_state.threads()->at(requesting_thread), cpu,
                output_stack_contents,
                process_state.thread_memory_regions()->at(requesting_thread),
@@ -1305,7 +1318,18 @@ void PrintProcessState(const ProcessState& process_state,
       if (thread_index != requesting_thread) {
         // Don't print the crash thread again, it was already printed.
         printf("\n");
-        printf("Thread %d (%u)\n", thread_index, process_state.threads()->at(thread_index)->tid());
+
+        if (thread_names != nullptr) {
+          thread_name = thread_names->at(thread_index);
+        }
+        if (!thread_name.empty()) {
+          printf("Thread %d [%u] \"%s\"\n", thread_index,
+                 process_state.threads()->at(thread_index)->tid(),
+                 thread_name.c_str());
+        } else {
+          printf("Thread %d [%u]\n", thread_index,
+                 process_state.threads()->at(thread_index)->tid());
+        }
         PrintStack(process_state.threads()->at(thread_index), cpu,
                   output_stack_contents,
                   process_state.thread_memory_regions()->at(thread_index),
