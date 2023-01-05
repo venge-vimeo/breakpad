@@ -1295,13 +1295,13 @@ void PrintProcessState(const ProcessState& process_state,
 
     if (!thread_name.empty()) {
       printf(
-          "Thread %d (%s) [%u] \"%s\"\n", requesting_thread,
+          "Thread %d (%s) [%x] \"%s\"\n", requesting_thread,
           process_state.crashed() ? "crashed" : "requested dump, did not crash",
           process_state.threads()->at(requesting_thread)->tid(),
           thread_name.c_str());
     } else {
       printf(
-          "Thread %d (%s) [%u]\n", requesting_thread,
+          "Thread %d (%s) [%x]\n", requesting_thread,
           process_state.crashed() ? "crashed" : "requested dump, did not crash",
           process_state.threads()->at(requesting_thread)->tid());
     }
@@ -1323,11 +1323,11 @@ void PrintProcessState(const ProcessState& process_state,
           thread_name = thread_names->at(thread_index);
         }
         if (!thread_name.empty()) {
-          printf("Thread %d [%u] \"%s\"\n", thread_index,
+          printf("Thread %d [%x] \"%s\"\n", thread_index,
                  process_state.threads()->at(thread_index)->tid(),
                  thread_name.c_str());
         } else {
-          printf("Thread %d [%u]\n", thread_index,
+          printf("Thread %d [%x]\n", thread_index,
                  process_state.threads()->at(thread_index)->tid());
         }
         PrintStack(process_state.threads()->at(thread_index), cpu,
