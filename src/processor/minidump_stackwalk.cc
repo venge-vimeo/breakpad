@@ -150,8 +150,8 @@ static void Usage(int argc, const char *argv[], bool error) {
           "  -m         Output in machine-readable format\n"
           "  -s         Output stack contents\n"
           "  -c         Output thread that causes crash or dump only\n"
-          "  -b         Brief of the thread that causes crash or dump\n",
-          "  -C         Output crashpad info\n",
+          "  -b         Brief of the thread that causes crash or dump\n"
+          "  -C         Output crashpad info\n"
           "  -M         Output modules only\n"
           "  -P         Pretty stack frames\n",
           google_breakpad::BaseName(argv[0]).c_str());
